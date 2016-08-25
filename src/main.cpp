@@ -10,6 +10,7 @@
 #include <fstream>
 #include <sstream>
 #include <stdexcept>
+#include <limits>
 
 namespace
 {
@@ -87,10 +88,10 @@ namespace
         {
             const auto half_width = width / 2, half_height = height / 2;
 
-            return Matrix{{half_width,          T{}, T{},       half_width,
-                                  T{}, -half_height, T{},      half_height,
-                                  T{},          T{}, T{},              T{},
-                                  T{},          T{}, T{}, static_cast<T>(1)}};
+            return Matrix{{half_width,          T{},               T{},       half_width,
+                                  T{}, -half_height,               T{},      half_height,
+                                  T{},          T{}, static_cast<T>(1),              T{},
+                                  T{},          T{},               T{}, static_cast<T>(1)}};
         }
 
         static constexpr Matrix createPerspective(T fov, T aspect, T znear, T zfar) noexcept
@@ -175,6 +176,14 @@ namespace
         std::vector<Vertex> vertices;
     };
 
+    float zbuffer[WINDOW_WIDTH * WINDOW_HEIGHT];
+
+    void clear_zbuffer() noexcept
+    {
+        for (size_t i = 0; i < WINDOW_WIDTH * WINDOW_HEIGHT; ++i)
+            *(zbuffer + i) = std::numeric_limits<float>::max();
+    }
+
     Mesh load_obj(const std::string& filepath)
     {
         std::ifstream stream{filepath, std::ios::in};
@@ -183,8 +192,8 @@ namespace
 
         std::vector<vec4f> vertex_positions, normals;
         std::vector<size_t> vertex_indices, normal_indices;
-
         std::string line;
+
         while (std::getline(stream, line))
         {
             std::stringstream line_stream{line};
@@ -247,8 +256,14 @@ namespace
         auto ldx = pos21.get_x() / pos21.get_y();
         auto rdx = pos43.get_x() / pos43.get_y();
 
+        auto ldz = pos21.get_z() / pos21.get_y();
+        auto rdz = pos43.get_z() / pos43.get_y();
+
         auto lx = pos1.get_x();
         auto rx = pos3.get_x() + (pos1.get_y() - pos3.get_y()) * rdx;
+
+        auto lz = pos1.get_z();
+        auto rz = pos3.get_z() + (pos1.get_y() - pos3.get_y()) * rdz;
 
         const vec4f& color1 = edge1.vert1.color, color2 = edge1.vert2.color,
                      color3 = edge2.vert1.color, color4 = edge2.vert2.color;
@@ -277,19 +292,27 @@ namespace
             if (min_x < 0 || max_x >= surface->w)
                 return;
 
-            const auto pixel_delta_color = rx == lx ? vec4f{} : (rc - lc) / (rx - lx);
+            const auto pixel_delta_color = (rc - lc) / (rx - lx);
             auto pixel_color = lc;
 
             for (int x = min_x; x < max_x; ++x)
             {
-                ::set_pixel(surface, x, y, pixel_color.get_x() * 255,
-                                           pixel_color.get_y() * 255,
-                                           pixel_color.get_z() * 255);
+                const auto zvalue = lz + (x - min_x) * (rz - lz) / (rx - lx);
+
+                if (zvalue < *(zbuffer + WINDOW_WIDTH * y + x))
+                {
+                    *(zbuffer + WINDOW_WIDTH * y + x) = zvalue;
+                    ::set_pixel(surface, x, y, pixel_color.get_x() * 255,
+                                               pixel_color.get_y() * 255,
+                                               pixel_color.get_z() * 255);
+                }
                 pixel_color += pixel_delta_color;
             }
 
             lx += ldx;
             rx += rdx;
+            lz += ldz;
+            rz += rdz;
             lc += ldc;
             rc += rdc;
         }
@@ -374,6 +397,8 @@ int main()
                             if (event.type == SDL_QUIT)
                                 running = false;
                         }
+
+                        ::clear_zbuffer();
 
                         ::SDL_FillRect(surface, nullptr, 0);
                         ::SDL_LockSurface(surface);
