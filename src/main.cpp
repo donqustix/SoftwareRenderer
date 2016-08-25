@@ -84,7 +84,7 @@ namespace
             for (auto i = 0; i < 16; ++i) *(this->data + i) = *(data + i);
         }
 
-        static constexpr Matrix createScreenspace(T width, T height) noexcept
+        static constexpr Matrix create_screenspace(T width, T height) noexcept
         {
             const auto half_width = width / 2, half_height = height / 2;
 
@@ -94,7 +94,7 @@ namespace
                                   T{},          T{},               T{}, static_cast<T>(1)}};
         }
 
-        static constexpr Matrix createPerspective(T fov, T aspect, T znear, T zfar) noexcept
+        static constexpr Matrix create_perspective(T fov, T aspect, T znear, T zfar) noexcept
         {
             const T f = 1 / std::tan(fov / 2), A =    (zfar + znear) / (znear - zfar),
                                                B = 2 * zfar * znear  / (znear - zfar);
@@ -105,7 +105,7 @@ namespace
                                   T{}, T{},  -1,  T{}}};
         }
 
-        static constexpr Matrix createScaling(T x, T y, T z) noexcept
+        static constexpr Matrix create_scaling(T x, T y, T z) noexcept
         {
             return Matrix{{x, T{}, T{}, T{},
                            T{}, y, T{}, T{},
@@ -113,7 +113,7 @@ namespace
                            T{}, T{}, T{}, static_cast<T>(1)}};
         }
 
-        static constexpr Matrix createRotationX(T angle) noexcept
+        static constexpr Matrix create_rotation_x(T angle) noexcept
         {
             const T cos_ = std::cos(angle), sin_ = std::sin(angle);
 
@@ -123,7 +123,7 @@ namespace
                                          T{},  T{},   T{}, static_cast<T>(1)}};
         }
 
-        static constexpr Matrix createRotationY(T angle) noexcept
+        static constexpr Matrix create_rotation_y(T angle) noexcept
         {
             const T cos_ = std::cos(angle), sin_ = std::sin(angle);
 
@@ -133,7 +133,7 @@ namespace
                              T{},               T{},  T{}, static_cast<T>(1)}};
         }
 
-        static constexpr Matrix createTranslation(T x, T y, T z) noexcept
+        static constexpr Matrix create_translation(T x, T y, T z) noexcept
         {
             return Matrix{{static_cast<T>(1),               T{},               T{},                x,
                                          T{}, static_cast<T>(1),               T{},                y,
@@ -347,7 +347,7 @@ namespace
         if (::check_virtual_position(virtual_pos1) ||
             ::check_virtual_position(virtual_pos2) || ::check_virtual_position(virtual_pos3)) return;
 
-        const auto screenspace_matrix = mat4f::createScreenspace(surface->w, surface->h);
+        const auto screenspace_matrix = mat4f::create_screenspace(surface->w, surface->h);
 
         const auto screenspace_pos1 = screenspace_matrix * virtual_pos1,
                    screenspace_pos2 = screenspace_matrix * virtual_pos2,
@@ -380,12 +380,12 @@ int main()
                 {
                     const Mesh mesh{::load_obj("res/bunny.obj")};
 
-                    const auto perspective_matrix = mat4f::createPerspective(M_PI / 3,
+                    const auto perspective_matrix = mat4f::create_perspective(M_PI / 3,
                             static_cast<float>(WINDOW_WIDTH) / WINDOW_HEIGHT, 1e-1F, 1e3F);
-                    auto matrix1 = perspective_matrix * mat4f::createTranslation(0.0F, -0.12F, -0.25F);
-                    auto matrix2 = perspective_matrix * mat4f::createTranslation(2.0F, 1.0F, -5.0F) *
-                            mat4f::createScaling(0.4F, 0.4F, 0.4F);
-                    const auto rotation_matrix = mat4f::createRotationY(0.05F) * mat4f::createRotationX(-0.01F);
+                    auto matrix1 = perspective_matrix * mat4f::create_translation(0.0F, -0.12F, -0.25F);
+                    auto matrix2 = perspective_matrix * mat4f::create_translation(2.0F, 1.0F, -5.0F) *
+                            mat4f::create_scaling(0.4F, 0.4F, 0.4F);
+                    const auto rotation_matrix = mat4f::create_rotation_y(0.05F) * mat4f::create_rotation_x(-0.01F);
 
                     SDL_Event event;
 
